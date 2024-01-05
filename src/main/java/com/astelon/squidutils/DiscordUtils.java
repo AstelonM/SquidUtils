@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
+@SuppressWarnings("unused")
 public class DiscordUtils {
 
     public static final long DISCORD_EPOCH = 1420070400000L;

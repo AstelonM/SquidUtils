@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@SuppressWarnings("unused")
 public class StringUtils {
 
     public static String capitalizeWord(String text) {
@@ -126,7 +127,7 @@ public class StringUtils {
                 } else if (token.format.equals("`")) {
                     stack.push(token);
                 }
-            } else if (!stack.isEmpty()) {
+            } else {
                 toRemove.add(stack.pop());
                 toRemove.add(token);
                 if (token.format.equals("`") && stack.isEmpty())

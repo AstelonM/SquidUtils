@@ -2,6 +2,7 @@ package com.astelon.squidutils;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.attribute.IGuildChannelContainer;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.CustomEmoji;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
@@ -13,6 +14,7 @@ import java.util.regex.Pattern;
 
 import static com.astelon.squidutils.DiscordUtils.parseSnowflake;
 
+@SuppressWarnings("unused")
 public class GetFromString { //TODO de imbunatatit
 
     //TODO poate le inlocuiesc cu originalele?
@@ -45,18 +47,18 @@ public class GetFromString { //TODO de imbunatatit
         if (text == null || text.isEmpty())
             return new ArrayList<>();
         ArrayList<User> result = new ArrayList<>();
-        int rawFormmats = Format.getValues(formats);
-        if (Format.MENTION.isPresent(rawFormmats)) {
+        int rawFormats = Format.getValues(formats);
+        if (Format.MENTION.isPresent(rawFormats)) {
             result.addAll(getMentionedUsers(jda, text));
             if (!result.isEmpty())
                 return result;
         }
-        if (Format.NAME.isPresent(rawFormmats)) {
+        if (Format.NAME.isPresent(rawFormats)) {
             result.addAll(jda.getUsersByName(text, true));
             if (!result.isEmpty())
                 return result;
         }
-        if (Format.ID.isPresent(rawFormmats)) {
+        if (Format.ID.isPresent(rawFormats)) {
             try {
                 result.add(jda.getUserById(text));
             } catch (Exception ignore) {}
@@ -101,30 +103,29 @@ public class GetFromString { //TODO de imbunatatit
         if (text == null || text.isEmpty())
             return new ArrayList<>();
         ArrayList<Member> result = new ArrayList<>();
-        int rawFormmats = Format.getValues(formats);
-        if (Format.MENTION.isPresent(rawFormmats)) {
+        int rawFormats = Format.getValues(formats);
+        if (Format.MENTION.isPresent(rawFormats)) {
             result.addAll(getMentionedMembers(guild, text));
             if (!result.isEmpty())
                 return result;
         }
-        if (Format.NAME.isPresent(rawFormmats)) {
+        if (Format.NAME.isPresent(rawFormats)) {
             result.addAll(guild.getMembersByName(text, true));
             if (!result.isEmpty())
                 return result;
         }
-        if (Format.ID.isPresent(rawFormmats)) {
+        if (Format.ID.isPresent(rawFormats)) {
             try {
                 result.add(guild.getMemberById(text));
-                if (!result.isEmpty())
-                    return result;
+                return result;
             } catch (Exception ignore) {}
         }
-        if (Format.NICKNAME.isPresent(rawFormmats)) {
+        if (Format.NICKNAME.isPresent(rawFormats)) {
             result.addAll(guild.getMembersByNickname(text, true));
             if (!result.isEmpty())
                 return result;
         }
-        if (Format.EFFECTIVE_NAME.isPresent(rawFormmats))
+        if (Format.EFFECTIVE_NAME.isPresent(rawFormats))
             result.addAll(guild.getMembersByEffectiveName(text, true));
         //TODO getByNameDiscriminator
         return result;
@@ -251,14 +252,14 @@ public class GetFromString { //TODO de imbunatatit
         return result.get(0);
     }
 
-    public static ArrayList<Emoji> getGuildMentionedEmojis(Guild guild, String text) {
+    public static ArrayList<CustomEmoji> getGuildMentionedEmojis(Guild guild, String text) {
         if (text == null || text.isEmpty())
             return new ArrayList<>();
         HashSet<Long> foundIds = new HashSet<>();
-        ArrayList<Emoji> emojis = new ArrayList<>();
+        ArrayList<CustomEmoji> emojis = new ArrayList<>();
         Matcher matcher = Message.MentionType.EMOJI.getPattern().matcher(text);
         long id;
-        Emoji emoji;
+        CustomEmoji emoji;
         String emojiName;
         boolean animated;
         while (matcher.find()) {
@@ -279,10 +280,10 @@ public class GetFromString { //TODO de imbunatatit
         return emojis;
     }
 
-    public static ArrayList<Emoji> getGuildEmojis(Guild guild, String text, Format... formats) {
+    public static ArrayList<CustomEmoji> getGuildEmojis(Guild guild, String text, Format... formats) {
         if (text == null || text.isEmpty())
             return new ArrayList<>();
-        ArrayList<Emoji> result = new ArrayList<>();
+        ArrayList<CustomEmoji> result = new ArrayList<>();
         int rawFormats = Format.getValues(formats);
         if (Format.MENTION.isPresent(rawFormats)) {
             result.addAll(getGuildMentionedEmojis(guild, text));
@@ -302,14 +303,15 @@ public class GetFromString { //TODO de imbunatatit
         return result;
     }
 
-    public static Emoji getGuildEmoji(Guild guild, String text, Format... formats) {
-        ArrayList<Emoji> result = getGuildEmojis(guild, text, formats);
+    public static CustomEmoji getGuildEmoji(Guild guild, String text, Format... formats) {
+        ArrayList<CustomEmoji> result = getGuildEmojis(guild, text, formats);
         if (result.isEmpty())
             return null;
         return result.get(0);
     }
 
-    public static ArrayList<TextChannel> getMentionedChannels(JDA jda, String text) {
+    private static ArrayList<TextChannel> getMentionedChannels(
+            IGuildChannelContainer channelContainer, String text) {
         if (text == null || text.isEmpty())
             return new ArrayList<>();
         HashSet<Long> foundIds = new HashSet<>();
@@ -323,13 +325,17 @@ public class GetFromString { //TODO de imbunatatit
                 if (foundIds.contains(id))
                     continue;
                 foundIds.add(id);
-                channel = jda.getTextChannelById(id);
+                channel = channelContainer.getTextChannelById(id);
                 if (channel != null)
                     channelMentions.add(channel);
             }
             catch (NumberFormatException ignored) {}
         }
         return channelMentions;
+    }
+
+    public static ArrayList<TextChannel> getMentionedChannels(JDA jda, String text) {
+        return getMentionedChannels((IGuildChannelContainer) jda, text);
     }
 
     public static ArrayList<TextChannel> getChannels(JDA jda, String text, Format... formats) {
@@ -356,26 +362,7 @@ public class GetFromString { //TODO de imbunatatit
     }
 
     public static ArrayList<TextChannel> getGuildMentionedChannels(Guild guild, String text) {
-        if (text == null || text.isEmpty())
-            return new ArrayList<>();
-        HashSet<Long> foundIds = new HashSet<>();
-        ArrayList<TextChannel> channelMentions = new ArrayList<>();
-        Matcher matcher = Message.MentionType.CHANNEL.getPattern().matcher(text);
-        long id;
-        TextChannel channel;
-        while (matcher.find()) {
-            try {
-                id = parseSnowflake(matcher.group(1));
-                if (foundIds.contains(id))
-                    continue;
-                foundIds.add(id);
-                channel = guild.getTextChannelById(id);
-                if (channel != null)
-                    channelMentions.add(channel);
-            }
-            catch (NumberFormatException ignored) {}
-        }
-        return channelMentions;
+        return getMentionedChannels(guild, text);
     }
 
     public static ArrayList<TextChannel> getGuildChannels(Guild guild, String text, Format... formats) {

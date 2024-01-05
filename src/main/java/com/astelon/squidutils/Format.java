@@ -15,7 +15,7 @@ public enum Format {
     @Deprecated
     NAME_DISCRIMINATOR(6);
 
-    private int rawValue;
+    private final int rawValue;
 
     Format(int offset) {
         rawValue =  1 << offset;

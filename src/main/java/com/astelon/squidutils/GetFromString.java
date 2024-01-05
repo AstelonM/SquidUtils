@@ -2,8 +2,9 @@ package com.astelon.squidutils;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.entities.channel.attribute.IGuildChannelContainer;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.entities.emoji.CustomEmoji;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 
@@ -310,22 +311,25 @@ public class GetFromString { //TODO de imbunatatit
         return result.get(0);
     }
 
-    private static ArrayList<TextChannel> getMentionedChannels(
-            IGuildChannelContainer channelContainer, String text) {
+    private static <T extends Channel> ArrayList<T> getMentionedChannels(
+            IGuildChannelContainer channelContainer,
+            Class<T> type,
+            String text
+    ) {
         if (text == null || text.isEmpty())
             return new ArrayList<>();
         HashSet<Long> foundIds = new HashSet<>();
-        ArrayList<TextChannel> channelMentions = new ArrayList<>();
+        ArrayList<T> channelMentions = new ArrayList<>();
         Matcher matcher = Message.MentionType.CHANNEL.getPattern().matcher(text);
         long id;
-        TextChannel channel;
+        T channel;
         while (matcher.find()) {
             try {
                 id = parseSnowflake(matcher.group(1));
                 if (foundIds.contains(id))
                     continue;
                 foundIds.add(id);
-                channel = channelContainer.getTextChannelById(id);
+                channel = channelContainer.getChannelById(type, id);
                 if (channel != null)
                     channelMentions.add(channel);
             }
@@ -334,58 +338,81 @@ public class GetFromString { //TODO de imbunatatit
         return channelMentions;
     }
 
-    public static ArrayList<TextChannel> getMentionedChannels(JDA jda, String text) {
-        return getMentionedChannels((IGuildChannelContainer) jda, text);
+    public static <T extends Channel> ArrayList<T> getMentionedChannels(JDA jda, Class<T> type, String text) {
+        return getMentionedChannels((IGuildChannelContainer) jda, type, text);
     }
 
-    public static ArrayList<TextChannel> getChannels(JDA jda, String text, Format... formats) {
+    public static ArrayList<GuildChannel> getMentionedChannels(JDA jda, String text) {
+        return getMentionedChannels((IGuildChannelContainer) jda, GuildChannel.class, text);
+    }
+
+    public static <T extends Channel> ArrayList<T> getChannels(JDA jda, Class<T> type, String text, Format... formats) {
         if (text == null || text.isEmpty())
             return new ArrayList<>();
-        ArrayList<TextChannel> result = new ArrayList<>();
+        ArrayList<T> result = new ArrayList<>();
         int rawFormats = Format.getValues(formats);
         if (Format.MENTION.isPresent(rawFormats)) {
-            result.addAll(getMentionedChannels(jda, text));
+            result.addAll(getMentionedChannels(jda, type, text));
             if (!result.isEmpty())
                 return result;
         }
         if (Format.NAME.isPresent(rawFormats)) {
-            result.addAll(jda.getTextChannelsByName(text, true));
+            jda.getGuilds().stream().map(Guild::getChannels)
+                    .filter(type::isInstance).map(type::cast)
+                    .filter(channel -> channel.getName().equalsIgnoreCase(text))
+                    .forEach(result::add);
             if (!result.isEmpty())
                 return result;
         }
         if (Format.ID.isPresent(rawFormats)) {
             try {
-                result.add(jda.getTextChannelById(text));
+                result.add(jda.getChannelById(type, text));
             } catch (Exception ignore) {}
         }
         return result;
     }
 
-    public static ArrayList<TextChannel> getGuildMentionedChannels(Guild guild, String text) {
-        return getMentionedChannels(guild, text);
+    public static ArrayList<GuildChannel> getChannels(JDA jda, String text, Format... formats) {
+        return getChannels(jda, GuildChannel.class, text, formats);
     }
 
-    public static ArrayList<TextChannel> getGuildChannels(Guild guild, String text, Format... formats) {
+    public static <T extends Channel> ArrayList<T> getGuildMentionedChannels(Guild guild, Class<T> type, String text) {
+        return getMentionedChannels(guild, type, text);
+    }
+
+    public static ArrayList<GuildChannel> getGuildMentionedChannels(Guild guild, String text) {
+        return getMentionedChannels(guild, GuildChannel.class, text);
+    }
+
+    public static <T extends Channel> ArrayList<T> getGuildChannels(Guild guild, Class<T> type,
+                                                                    String text, Format... formats) {
         if (text == null || text.isEmpty())
             return new ArrayList<>();
-        ArrayList<TextChannel> result = new ArrayList<>();
+        ArrayList<T> result = new ArrayList<>();
         int rawFormats = Format.getValues(formats);
         if (Format.MENTION.isPresent(rawFormats)) {
-            result.addAll(getGuildMentionedChannels(guild, text));
+            result.addAll(getGuildMentionedChannels(guild, type, text));
             if (!result.isEmpty())
                 return result;
         }
         if (Format.NAME.isPresent(rawFormats)) {
-            result.addAll(guild.getTextChannelsByName(text, true));
+            guild.getChannels().stream()
+                    .filter(type::isInstance).map(type::cast)
+                    .filter(channel -> channel.getName().equalsIgnoreCase(text))
+                    .forEach(result::add);
             if (!result.isEmpty())
                 return result;
         }
         if (Format.ID.isPresent(rawFormats)) {
             try {
-                result.add(guild.getTextChannelById(text));
+                result.add(guild.getChannelById(type, text));
             } catch (Exception ignore) {}
         }
         return result;
+    }
+
+    public static ArrayList<GuildChannel> getGuildChannels(Guild guild, String text, Format... formats) {
+        return getGuildChannels(guild, GuildChannel.class, text, formats);
     }
 
     public static ArrayList<IMentionable> getMentions(JDA jda, Guild guild, String text,

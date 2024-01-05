@@ -2,8 +2,9 @@ package com.astelon.squidutils;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.internal.JDAImpl;
-import net.dv8tion.jda.internal.entities.EmoteImpl;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.emoji.CustomEmoji;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -192,15 +193,15 @@ public class GetFromString { //TODO de imbunatatit
         return result.get(0);
     }
 
-    public static ArrayList<Emote> getMentionedEmotes(JDA jda, String text) {
+    public static ArrayList<CustomEmoji> getMentionedEmojis(JDA jda, String text) {
         if (text == null || text.isEmpty())
             return new ArrayList<>();
         HashSet<Long> foundIds = new HashSet<>();
-        ArrayList<Emote> emotes = new ArrayList<>();
-        Matcher matcher = Message.MentionType.EMOTE.getPattern().matcher(text);
+        ArrayList<CustomEmoji> emojis = new ArrayList<>();
+        Matcher matcher = Message.MentionType.EMOJI.getPattern().matcher(text);
         long id;
-        Emote emote;
-        String emoteName;
+        CustomEmoji emoji;
+        String emojiName;
         boolean animated;
         while (matcher.find()) {
             try {
@@ -208,57 +209,57 @@ public class GetFromString { //TODO de imbunatatit
                 if (foundIds.contains(id))
                     continue;
                 foundIds.add(id);
-                emoteName = matcher.group(1);
+                emojiName = matcher.group(1);
                 animated = matcher.group(0).startsWith("<a:");
-                emote = jda.getEmoteById(id);
-                if (emote == null)
-                    emote = new EmoteImpl(id, (JDAImpl) jda).setAnimated(animated).setName(emoteName);
-                emotes.add(emote);
+                emoji = jda.getEmojiById(id);
+                if (emoji == null)
+                    emoji = Emoji.fromCustom(emojiName, id, animated);
+                emojis.add(emoji);
             }
             catch (NumberFormatException ignored) {}
         }
-        return emotes;
+        return emojis;
     }
 
-    public static ArrayList<Emote> getEmotes(JDA jda, String text, Format... formats) {
+    public static ArrayList<Emoji> getEmojis(JDA jda, String text, Format... formats) {
         if (text == null || text.isEmpty())
             return new ArrayList<>();
-        ArrayList<Emote> result = new ArrayList<>();
+        ArrayList<Emoji> result = new ArrayList<>();
         int rawFormats = Format.getValues(formats);
         if (Format.MENTION.isPresent(rawFormats)) {
-            result.addAll(getMentionedEmotes(jda, text));
+            result.addAll(getMentionedEmojis(jda, text));
             if (!result.isEmpty())
                 return result;
         }
         if (Format.NAME.isPresent(rawFormats)) {
-            result.addAll(jda.getEmotesByName(text, true));
+            result.addAll(jda.getEmojisByName(text, true));
             if (!result.isEmpty())
                 return result;
         }
         if (Format.ID.isPresent(rawFormats)) {
             try {
-                result.add(jda.getEmoteById(text));
+                result.add(jda.getEmojiById(text));
             } catch (Exception ignore) {}
         }
         return result;
     }
 
-    public static Emote getEmote(JDA jda, String text, Format... formats) {
-        ArrayList<Emote> result = getEmotes(jda, text, formats);
+    public static Emoji getEmoji(JDA jda, String text, Format... formats) {
+        ArrayList<Emoji> result = getEmojis(jda, text, formats);
         if (result.isEmpty())
             return null;
         return result.get(0);
     }
 
-    public static ArrayList<Emote> getGuildMentionedEmotes(Guild guild, String text) {
+    public static ArrayList<Emoji> getGuildMentionedEmojis(Guild guild, String text) {
         if (text == null || text.isEmpty())
             return new ArrayList<>();
         HashSet<Long> foundIds = new HashSet<>();
-        ArrayList<Emote> emotes = new ArrayList<>();
-        Matcher matcher = Message.MentionType.EMOTE.getPattern().matcher(text);
+        ArrayList<Emoji> emojis = new ArrayList<>();
+        Matcher matcher = Message.MentionType.EMOJI.getPattern().matcher(text);
         long id;
-        Emote emote;
-        String emoteName;
+        Emoji emoji;
+        String emojiName;
         boolean animated;
         while (matcher.find()) {
             try {
@@ -266,43 +267,43 @@ public class GetFromString { //TODO de imbunatatit
                 if (foundIds.contains(id))
                     continue;
                 foundIds.add(id);
-                emoteName = matcher.group(1);
+                emojiName = matcher.group(1);
                 animated = matcher.group(0).startsWith("<a:");
-                emote = guild.getEmoteById(id);
-                if (emote == null)
-                    emote = new EmoteImpl(id, (JDAImpl) guild.getJDA()).setAnimated(animated).setName(emoteName);
-                emotes.add(emote);
+                emoji = guild.getEmojiById(id);
+                if (emoji == null)
+                    emoji = Emoji.fromCustom(emojiName, id, animated);
+                emojis.add(emoji);
             }
             catch (NumberFormatException ignored) {}
         }
-        return emotes;
+        return emojis;
     }
 
-    public static ArrayList<Emote> getGuildEmotes(Guild guild, String text, Format... formats) {
+    public static ArrayList<Emoji> getGuildEmojis(Guild guild, String text, Format... formats) {
         if (text == null || text.isEmpty())
             return new ArrayList<>();
-        ArrayList<Emote> result = new ArrayList<>();
+        ArrayList<Emoji> result = new ArrayList<>();
         int rawFormats = Format.getValues(formats);
         if (Format.MENTION.isPresent(rawFormats)) {
-            result.addAll(getGuildMentionedEmotes(guild, text));
+            result.addAll(getGuildMentionedEmojis(guild, text));
             if (!result.isEmpty())
                 return result;
         }
         if (Format.NAME.isPresent(rawFormats)) {
-            result.addAll(guild.getEmotesByName(text, true));
+            result.addAll(guild.getEmojisByName(text, true));
             if (!result.isEmpty())
                 return result;
         }
         if (Format.ID.isPresent(rawFormats)) {
             try {
-                result.add(guild.getEmoteById(text));
+                result.add(guild.getEmojiById(text));
             } catch (Exception ignore) {}
         }
         return result;
     }
 
-    public static Emote getGuildEmote(Guild guild, String text, Format... formats) {
-        ArrayList<Emote> result = getGuildEmotes(guild, text, formats);
+    public static Emoji getGuildEmoji(Guild guild, String text, Format... formats) {
+        ArrayList<Emoji> result = getGuildEmojis(guild, text, formats);
         if (result.isEmpty())
             return null;
         return result.get(0);
@@ -410,7 +411,7 @@ public class GetFromString { //TODO de imbunatatit
         boolean channel = false;
         boolean role = false;
         boolean user = false;
-        boolean emote = false;
+        boolean emoji = false;
         for (Message.MentionType type : types) {
             switch (type) {
                 case EVERYONE:
@@ -431,10 +432,10 @@ public class GetFromString { //TODO de imbunatatit
                         mentions.addAll(getMentionedRoles(jda, guild, text));
                     role = true;
                     break;
-                case EMOTE:
-                    if (!emote)
-                        mentions.addAll(getMentionedEmotes(jda, text));
-                    emote = true;
+                case EMOJI:
+                    if (!emoji)
+                        mentions.addAll(getMentionedEmojis(jda, text));
+                    emoji = true;
             }
         }
         return mentions;

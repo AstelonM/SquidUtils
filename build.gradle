@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'com.astelon'
-version '1.0.0-SNAPSHOT'
+version '2.0.0-SNAPSHOT'
 
 java {
     toolchain {
@@ -14,11 +14,10 @@ java {
 
 repositories {
     mavenCentral()
-    maven { url = 'https://m2.dv8tion.net/releases' }
 }
 
 dependencies {
-    compileOnly('net.dv8tion:JDA:4.3.0_315') {
+    compileOnly('net.dv8tion:JDA:5.0.0-beta.19') {
         exclude module: 'opus-java'
     }
 }
